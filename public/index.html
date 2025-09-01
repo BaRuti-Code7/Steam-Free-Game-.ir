@@ -8,6 +8,7 @@
     body{font-family: system-ui, tahoma; margin:0; background:#0b0f13; color:#e6e7ea}
     .wrap{max-width:1100px; margin:40px auto; padding:0 16px}
     h1{margin:0 0 10px}
+    h2{margin:32px 0 12px}
     .muted{opacity:.75; font-size:14px; margin-bottom:16px}
     .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px}
     .card{background:#141a20; border:1px solid #1f2a33; border-radius:14px; overflow:hidden}
@@ -17,42 +18,82 @@
     .badge{display:inline-block; padding:4px 8px; border-radius:999px; font-size:12px; background:#243341; margin-inline-end:8px}
     .fk{background:#1e3a2d} .fw{background:#3a2a1e}
     a.btn{display:inline-block; background:#2b82f6; color:white; text-decoration:none; padding:8px 12px; border-radius:10px}
+    .warn{margin-top:10px; font-size:13px; color:#f39c12}
+    .box{background:#141a20; border:1px solid #1f2a33; border-radius:14px; padding:16px}
+    ul.up{line-height:1.9; margin:8px 0 0 0}
   </style>
 </head>
 <body>
   <div class="wrap">
     <h1>بازی‌های رایگان/فری‌ویکند استیم</h1>
     <div class="muted">داده‌ها هر چند دقیقه یک‌بار تازه می‌شوند.</div>
+
     <div id="list" class="grid"></div>
+
+    <h2>🎯 پروموشن‌های رایگان احتمالی آینده</h2>
+    <div id="upcoming" class="box">
+      <div class="muted">در حال بررسی…</div>
+    </div>
   </div>
 
   <script>
+    // تبدیل ماه‌های انگلیسی به فارسی (میلادی)
+    const monthFa = {
+      Jan: "ژانویه", Feb: "فوریه", Mar: "مارس", Apr: "آوریل",
+      May: "مه", Jun: "ژوئن", Jul: "ژوئیه", Aug: "اوت",
+      Sep: "سپتامبر", Oct: "اکتبر", Nov: "نوامبر", Dec: "دسامبر"
+    };
+    function toFaMonthLine(line){
+      // نمونه ورودی SteamDB برای احتمالی‌ها: "Oct 2025: 911 Operator"
+      // فقط ماه‌های سه‌حرفی اول را فارسی می‌کنیم
+      return line.replace(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/g, m => monthFa[m] || m);
+    }
+
     (async function(){
-      const box = document.getElementById('list');
-      box.innerHTML = `<div class="card" style="grid-column:1/-1"><div style="padding:16px">در حال آوردن لیست…</div></div>`;
+      const listEl = document.getElementById('list');
+      const upEl = document.getElementById('upcoming');
+
+      listEl.innerHTML = `<div class="card" style="grid-column:1/-1"><div style="padding:16px">در حال آوردن لیست…</div></div>`;
+
       try {
         const r = await fetch('/api/free').then(r=>r.json());
+
+        // بخش اصلی
         if (!r.items || !r.items.length) {
-          box.innerHTML = `<div class="card" style="grid-column:1/-1"><div style="padding:16px">فعلاً چیزی پیدا نشد. بعداً سر بزن 🙂</div></div>`;
-          return;
-        }
-        box.innerHTML = r.items.map(x => `
-          <div class="card">
-            ${x.capsule ? `<img loading="lazy" src="${x.capsule}" alt="${x.name}"/>` : ""}
-            <div style="padding:12px">
-              <span class="badge ${x.promoType==='free_to_keep'?'fk':'fw'}">
-                ${x.promoType==='free_to_keep'?'Free to Keep':'Free Weekend'}
-              </span>
-              <div class="title">${x.name}</div>
-              <div class="row" style="margin-top:10px">
-                <a class="btn" href="${x.storeUrl}" target="_blank" rel="noopener">صفحه‌ی استیم</a>
-                <a class="muted" href="${x.steamdbUrl}" target="_blank" rel="noopener">SteamDB</a>
+          listEl.innerHTML = `<div class="card" style="grid-column:1/-1"><div style="padding:16px">فعلاً چیزی پیدا نشد. بعداً سر بزن 🙂</div></div>`;
+        } else {
+          listEl.innerHTML = r.items.map(x => `
+            <div class="card">
+              ${x.capsule ? `<img loading="lazy" src="${x.capsule}" alt="${x.name}"/>` : ""}
+              <div style="padding:12px">
+                <span class="badge ${x.promoType==='free_to_keep'?'fk':'fw'}">
+                  ${x.promoType==='free_to_keep'?'Free to Keep':'Free Weekend'}
+                </span>
+                <div class="title">${x.name}</div>
+                <div class="row" style="margin-top:10px">
+                  <a class="btn" href="${x.storeUrl}" target="_blank" rel="noopener">صفحه‌ی استیم</a>
+                  <a class="muted" href="${x.steamdbUrl}" target="_blank" rel="noopener">SteamDB</a>
+                </div>
               </div>
             </div>
-          </div>
-        `).join('');
+          `).join('');
+        }
+
+        // بخش «پروموشن‌های احتمالی آینده»
+        const list = Array.isArray(r.upcoming) ? r.upcoming : [];
+        if (!list.length) {
+          upEl.innerHTML = `<div class="muted">فعلاً موردی اعلام نشده.</div>`;
+        } else {
+          upEl.innerHTML = `
+            <ul class="up">
+              ${list.map(x => `<li>${toFaMonthLine(x)}</li>`).join("")}
+            </ul>
+            <div class="warn">⚠️ این موارد «احتمالی» هستند و تضمینی برای رایگان شدن قطعی آن‌ها وجود ندارد.</div>
+          `;
+        }
       } catch (e) {
-        box.innerHTML = `<div class="card" style="grid-column:1/-1"><div style="padding:16px">اوه! خطا در گرفتن داده.</div></div>`;
+        listEl.innerHTML = `<div class="card" style="grid-column:1/-1"><div style="padding:16px">اوه! خطا در گرفتن داده.</div></div>`;
+        upEl.innerHTML = `<div class="muted">نتوانستیم بخش «احتمالی‌ها» را بارگیری کنیم.</div>`;
       }
     })();
   </script>
