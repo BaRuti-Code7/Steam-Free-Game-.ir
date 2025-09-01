@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>بازی‌های رایگان استیم (از SteamDB)</title>
+  <style>
+    body{font-family: system-ui, tahoma; margin:0; background:#0b0f13; color:#e6e7ea}
+    .wrap{max-width:1100px; margin:40px auto; padding:0 16px}
+    h1{margin:0 0 10px}
+    .muted{opacity:.75; font-size:14px; margin-bottom:16px}
+    .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px}
+    .card{background:#141a20; border:1px solid #1f2a33; border-radius:14px; overflow:hidden}
+    .card img{width:100%; display:block}
+    .title{font-weight:700; font-size:16px; margin:8px 0}
+    .row{display:flex; align-items:center; justify-content:space-between; gap:8px}
+    .badge{display:inline-block; padding:4px 8px; border-radius:999px; font-size:12px; background:#243341; margin-inline-end:8px}
+    .fk{background:#1e3a2d} .fw{background:#3a2a1e}
+    a.btn{display:inline-block; background:#2b82f6; color:white; text-decoration:none; padding:8px 12px; border-radius:10px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>بازی‌های رایگان/فری‌ویکند استیم</h1>
+    <div class="muted">داده‌ها هر چند دقیقه یک‌بار تازه می‌شوند.</div>
+    <div id="list" class="grid"></div>
+  </div>
+
+  <script>
+    (async function(){
+      const box = document.getElementById('list');
+      box.innerHTML = `<div class="card" style="grid-column:1/-1"><div style="padding:16px">در حال آوردن لیست…</div></div>`;
+      try {
+        const r = await fetch('/api/free').then(r=>r.json());
+        if (!r.items || !r.items.length) {
+          box.innerHTML = `<div class="card" style="grid-column:1/-1"><div style="padding:16px">فعلاً چیزی پیدا نشد. بعداً سر بزن 🙂</div></div>`;
+          return;
+        }
+        box.innerHTML = r.items.map(x => `
+          <div class="card">
+            ${x.capsule ? `<img loading="lazy" src="${x.capsule}" alt="${x.name}"/>` : ""}
+            <div style="padding:12px">
+              <span class="badge ${x.promoType==='free_to_keep'?'fk':'fw'}">
+                ${x.promoType==='free_to_keep'?'Free to Keep':'Free Weekend'}
+              </span>
+              <div class="title">${x.name}</div>
+              <div class="row" style="margin-top:10px">
+                <a class="btn" href="${x.storeUrl}" target="_blank" rel="noopener">صفحه‌ی استیم</a>
+                <a class="muted" href="${x.steamdbUrl}" target="_blank" rel="noopener">SteamDB</a>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      } catch (e) {
+        box.innerHTML = `<div class="card" style="grid-column:1/-1"><div style="padding:16px">اوه! خطا در گرفتن داده.</div></div>`;
+      }
+    })();
+  </script>
+</body>
+</html>
